@@ -1,0 +1,28 @@
+# Google OAuth — NEVER commit these
+credentials.json
+token.json
+
+# Generated data file — regenerate locally
+shaayaris.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local backup folders
+Shaayari_Backups/

@@ -1,0 +1,157 @@
+╔══════════════════════════════════════════════════════════════════╗
+║         GOOGLE SETUP GUIDE — Get Your credentials.json          ║
+║         Do this ONCE. Takes about 10 minutes.                   ║
+╚══════════════════════════════════════════════════════════════════╝
+
+This sounds scarier than it is! You're basically telling Google
+"hey, allow MY script to read MY Drive". That's it.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — Install Required Python Libraries
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Open CMD and run:
+
+  pip install google-auth google-auth-oauthlib google-api-python-client
+
+Wait for it to finish. You'll see "Successfully installed" at the end.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — Create a Google Cloud Project
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to: https://console.cloud.google.com/
+2. Sign in with the SAME Google account as your Drive
+3. Click "Select a project" at the top → "New Project"
+4. Name it: "Shaayari Backup" → Click Create
+5. Wait a few seconds for it to create
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — Enable Google Drive API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. In the search bar at top, type: "Google Drive API"
+2. Click on "Google Drive API" in results
+3. Click the blue "Enable" button
+4. Wait for it to enable
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — Create Credentials
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. On the left menu, click "Credentials"
+2. Click "+ Create Credentials" at the top
+3. Choose "OAuth client ID"
+4. If asked to configure consent screen:
+   → Click "Configure Consent Screen"
+   → Choose "External" → Create
+   → App name: "Shaayari Backup"
+   → User support email: your Gmail
+   → Scroll down → Save and Continue
+   → Keep clicking "Save and Continue" until done
+   → Back to Dashboard
+
+5. Now click "+ Create Credentials" → "OAuth client ID" again
+6. Application type: "Desktop app"
+7. Name: "Shaayari Backup"
+8. Click Create
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — Download credentials.json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. A popup will appear showing your Client ID and Secret
+2. Click "Download JSON" button
+3. Rename the downloaded file to exactly: credentials.json
+4. Put it in the SAME folder as shaayari_gdrive_sync.py
+
+Your folder should look like:
+  C:\ShaayariBackup\
+    ├── shaayari_gdrive_sync.py
+    ├── credentials.json        ← just added this
+    ├── RUN_BACKUP.bat
+    └── GOOGLE_SETUP.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — Run for the First Time
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open CMD → navigate to your folder:
+   cd C:\ShaayariBackup
+
+2. Run:
+   python shaayari_gdrive_sync.py
+
+3. A browser window will open asking you to sign in to Google
+   → Sign in with your Gmail
+   → Click "Allow" when it asks for Drive access
+   → Browser will say "Authentication successful"
+
+4. The script will now download ALL your shaayaris! 🎉
+
+⚠️ NOTE: Google might show a warning "App not verified"
+   → Click "Advanced" → "Go to Shaayari Backup (unsafe)"
+   → This is safe — it's YOUR app accessing YOUR Drive!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7 — Set Up Weekly Auto-Backup (Task Scheduler)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Press Win + S → search "Task Scheduler" → open it
+2. Click "Create Basic Task..." on the right
+3. Name: "Shaayari Weekly Backup" → Next
+4. Trigger: "Weekly" → Next
+5. Day: Sunday, Time: 10:00 AM → Next
+6. Action: "Start a Program" → Next
+7. Program: python
+   (or full path: C:\Users\YourName\AppData\Local\Programs\Python\Python312\python.exe)
+8. Arguments: C:\ShaayariBackup\shaayari_gdrive_sync.py
+9. Finish!
+
+Every Sunday at 10 AM — automatic backup. Done! ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR BACKUP FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Documents/
+└── Shaayari_Backups/
+    ├── 2025-03-02/
+    │   ├── Shaayari/
+    │   │   ├── Woh_Lamhe.txt
+    │   │   ├── Dil_Ki_Baat.txt
+    │   │   └── ... (all your shaayaris)
+    │   └── _SYNC_LOG.txt
+    ├── 2025-03-09/
+    ├── 2025-03-16/
+    └── ...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT HAPPENS EVERY SUNDAY AUTOMATICALLY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌─────────────────┐
+  │  Google Drive   │  ← You add new shaayaris here anytime
+  │  /Shaayari/     │
+  └────────┬────────┘
+           │ Every Sunday 10 AM
+           ▼
+  ┌─────────────────┐
+  │  Your Laptop    │  ← Safe dated backup, forever
+  │  Documents/     │
+  │  Shaayari_      │
+  │  Backups/       │
+  └─────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FUTURE SCOPE — WHAT WE BUILD NEXT 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Phase 2 → Beautiful web UI to browse your shaayaris
+  Phase 3 → Search by mood, keyword, or date
+  Phase 4 → Random shaayari of the day
+  Phase 5 → Export as a PDF poetry book 📖
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Made with ❤️  for your passion project — your shaayaris deserve this!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
