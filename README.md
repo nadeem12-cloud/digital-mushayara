@@ -22,7 +22,7 @@ This isn't just a portfolio project. It's a real product I use every day to publ
 
 | Home | Search & Filter |
 |------|----------------|
-| ![Home](assets/ss1.png) | ![Search](assets/ss2.png) |
+| ![Home](assets/ss2.png) | ![Search](assets/ss1.png) |
 
 | Quote Card Export |
 |------------------|
