@@ -23,6 +23,10 @@ This isn't just a portfolio project. It's a real product I use every day to publ
 | Home | Search & Filter |
 |------|----------------|
 | ![Home](assets/ss2.png) | ![Search](assets/ss1.png) |
+| Login Page | Admin Dashboard |
+|------|----------------|
+| ![Login](assets/ss4.png) | ![DashBoard](assets/ss5.png) |
+
 
 | Quote Card Export |
 |------------------|
