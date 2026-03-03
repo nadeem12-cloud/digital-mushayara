@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Mushayara — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --maroon: #7b1c1c;
+  --maroon-deep: #3d0c0c;
+  --gold: #c9a84c;
+  --cream: #fdf6ec;
+  --cream-mid: #e8d5b0;
+  --cream-dark: #f5e6d0;
+  --text-dark: #2c1810;
+  --text-mid: #5c3a2a;
+  --text-light: #9c7a6a;
+  --green: #2d7a4f;
+  --red: #c0392b;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#f0e8d8; font-family:'EB Garamond',serif; color:var(--text-dark); min-height:100vh; }
+
+/* ── LAYOUT ── */
+.layout { display:flex; min-height:100vh; }
+.sidebar {
+  width:240px; background:linear-gradient(170deg,var(--maroon-deep),#5c1010);
+  padding:32px 0 24px; display:flex; flex-direction:column;
+  position:fixed; height:100vh; z-index:100;
+}
+.logo { padding:0 24px 28px; border-bottom:1px solid rgba(201,168,76,0.15); }
+.logo-moon { font-size:32px; display:block; margin-bottom:8px; }
+.logo-title { font-family:'Cinzel',serif; font-size:15px; color:var(--gold); letter-spacing:0.5px; }
+.logo-sub { font-size:11px; color:rgba(253,246,236,0.4); font-style:italic; margin-top:2px; }
+.nav { flex:1; padding:20px 0; }
+.nav-item {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 24px; cursor:pointer;
+  color:rgba(253,246,236,0.55); font-size:15px;
+  border-left:3px solid transparent; transition:all 0.2s;
+  font-family:'EB Garamond',serif;
+}
+.nav-item:hover { color:var(--gold); background:rgba(201,168,76,0.07); }
+.nav-item.active { color:var(--gold); border-left-color:var(--gold); background:rgba(201,168,76,0.1); }
+.nav-icon { font-size:16px; width:20px; text-align:center; }
+.nav-badge {
+  margin-left:auto; background:var(--gold); color:var(--maroon-deep);
+  font-family:'Cinzel',serif; font-size:10px; font-weight:700;
+  padding:2px 7px; border-radius:100px; display:none;
+}
+.nav-badge.show { display:block; }
+.sidebar-footer { padding:20px 24px 0; border-top:1px solid rgba(201,168,76,0.15); }
+.logout-btn {
+  display:flex; align-items:center; gap:8px;
+  color:rgba(253,246,236,0.4); font-size:13px; cursor:pointer;
+  font-style:italic; text-decoration:none; transition:color 0.2s;
+}
+.logout-btn:hover { color:rgba(253,246,236,0.7); }
+
+.main { margin-left:240px; padding:40px; min-height:100vh; }
+
+/* ── PAGE HEADER ── */
+.page-header { margin-bottom:32px; }
+.page-title { font-family:'Cinzel',serif; font-size:22px; color:var(--maroon-deep); letter-spacing:0.5px; }
+.page-sub { font-size:15px; color:var(--text-light); font-style:italic; margin-top:4px; }
+
+/* ── VIEWS ── */
+.view { display:none; }
+.view.active { display:block; }
+
+/* ── STATS CARDS ── */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+.stat-card {
+  background:white; border-radius:16px; padding:24px;
+  box-shadow:0 2px 12px rgba(61,12,12,0.08);
+}
+.stat-card-icon { font-size:28px; margin-bottom:8px; }
+.stat-card-val { font-family:'Cinzel',serif; font-size:28px; color:var(--maroon); }
+.stat-card-label { font-size:13px; color:var(--text-light); font-style:italic; margin-top:2px; }
+
+/* ── NOTIFICATIONS ── */
+.notif-item {
+  background:white; border-radius:14px; padding:18px 20px;
+  margin-bottom:10px; box-shadow:0 2px 8px rgba(61,12,12,0.06);
+  display:flex; gap:14px; align-items:flex-start;
+  border-left:3px solid var(--cream-mid); transition:border-color 0.2s;
+}
+.notif-item.unread { border-left-color:var(--gold); background:#fffdf5; }
+.notif-icon { font-size:22px; flex-shrink:0; margin-top:2px; }
+.notif-body { flex:1; }
+.notif-title { font-family:'Cinzel',serif; font-size:12px; color:var(--maroon); letter-spacing:0.5px; text-transform:uppercase; }
+.notif-shaayari { font-size:15px; color:var(--text-mid); font-style:italic; margin:2px 0; }
+.notif-content { font-size:14px; color:var(--text-dark); }
+.notif-time { font-size:11px; color:var(--text-light); margin-top:4px; font-style:italic; }
+.empty-notif { text-align:center; padding:60px; color:var(--text-light); font-style:italic; font-size:16px; }
+
+/* ── SHAAYARI TABLE ── */
+.toolbar { display:flex; gap:12px; margin-bottom:20px; align-items:center; flex-wrap:wrap; }
+.search-input {
+  flex:1; padding:10px 16px; border:1.5px solid var(--cream-mid);
+  border-radius:10px; font-family:'EB Garamond',serif; font-size:15px;
+  color:var(--text-dark); background:white; outline:none; min-width:200px;
+}
+.search-input:focus { border-color:var(--gold); }
+.btn {
+  padding:10px 20px; border-radius:10px; border:none; cursor:pointer;
+  font-family:'Cinzel',serif; font-size:12px; letter-spacing:0.5px;
+  transition:all 0.2s; display:flex; align-items:center; gap:6px;
+}
+.btn-primary { background:var(--maroon); color:var(--cream); }
+.btn-primary:hover { background:var(--maroon-deep); }
+.btn-outline { background:white; color:var(--maroon); border:1.5px solid var(--cream-mid); }
+.btn-outline:hover { border-color:var(--maroon); }
+.btn-danger { background:#fdf0ef; color:var(--red); border:1.5px solid #f5c6c6; }
+.btn-danger:hover { background:#f5c6c6; }
+.btn-sm { padding:6px 12px; font-size:11px; }
+
+.shaayari-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.shaayari-card {
+  background:white; border-radius:16px; padding:22px;
+  box-shadow:0 2px 8px rgba(61,12,12,0.06);
+  border:1.5px solid transparent; transition:border-color 0.2s;
+}
+.shaayari-card:hover { border-color:var(--cream-mid); }
+.sc-status {
+  display:inline-block; padding:3px 10px; border-radius:100px;
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px;
+  text-transform:uppercase; margin-bottom:10px;
+}
+.sc-status.published { background:rgba(45,122,79,0.1); color:var(--green); }
+.sc-status.draft { background:rgba(201,168,76,0.15); color:#8a6a1a; }
+.sc-title { font-family:'Cinzel',serif; font-size:16px; color:var(--maroon-deep); margin-bottom:8px; }
+.sc-preview {
+  font-size:14px; font-style:italic; color:var(--text-mid);
+  line-height:1.7; margin-bottom:14px;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+.sc-meta { display:flex; gap:16px; font-size:12px; color:var(--text-light); margin-bottom:14px; }
+.sc-actions { display:flex; gap:8px; }
+
+/* ── MODAL / EDITOR ── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(30,5,5,0.6);
+  backdrop-filter:blur(6px); z-index:300;
+  display:flex; align-items:center; justify-content:center;
+  padding:20px; opacity:0; pointer-events:none; transition:opacity 0.3s;
+}
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal {
+  background:var(--cream); border-radius:24px; width:640px;
+  max-width:100%; max-height:90vh; overflow-y:auto; padding:40px;
+  box-shadow:0 32px 80px rgba(61,12,12,0.35);
+  transform:translateY(20px); transition:transform 0.3s;
+}
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-title { font-family:'Cinzel',serif; font-size:18px; color:var(--maroon-deep); margin-bottom:24px; }
+.form-group { margin-bottom:18px; }
+.form-label { font-family:'Cinzel',serif; font-size:11px; letter-spacing:1px; color:var(--maroon); text-transform:uppercase; margin-bottom:6px; display:block; }
+.form-input {
+  width:100%; padding:12px 16px; border:1.5px solid var(--cream-mid);
+  border-radius:10px; font-family:'EB Garamond',serif; font-size:15px;
+  color:var(--text-dark); background:white; outline:none; transition:border-color 0.2s;
+}
+.form-input:focus { border-color:var(--gold); }
+textarea.form-input { min-height:200px; resize:vertical; line-height:1.8; font-style:italic; }
+.form-row { display:flex; gap:12px; }
+.tag-picker { display:flex; gap:8px; flex-wrap:wrap; }
+.tag-btn {
+  padding:6px 14px; border-radius:100px; border:1.5px solid var(--cream-mid);
+  background:white; font-family:'EB Garamond',serif; font-size:14px;
+  color:var(--text-mid); cursor:pointer; transition:all 0.2s;
+}
+.tag-btn.selected { background:var(--maroon); border-color:var(--maroon); color:var(--cream); }
+.modal-footer { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+
+/* ── COMMENTS ── */
+.comment-card {
+  background:white; border-radius:14px; padding:18px 20px;
+  margin-bottom:10px; box-shadow:0 2px 8px rgba(61,12,12,0.06);
+  display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+}
+.comment-author { font-family:'Cinzel',serif; font-size:12px; color:var(--maroon); margin-bottom:4px; }
+.comment-shaayari { font-size:12px; color:var(--text-light); font-style:italic; margin-bottom:6px; }
+.comment-text { font-size:15px; color:var(--text-dark); line-height:1.5; }
+.comment-time { font-size:11px; color:var(--text-light); margin-top:4px; font-style:italic; }
+
+  /* ══════════════════════════════════════
+     MOBILE RESPONSIVE
+  ══════════════════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* Sidebar → bottom nav bar */
+    .sidebar {
+      position: fixed;
+      left: 0; bottom: 0; top: auto;
+      width: 100%; height: auto;
+      flex-direction: row;
+      padding: 0;
+      z-index: 200;
+      box-shadow: 0 -4px 24px rgba(61,12,12,0.3);
+    }
+    .logo { display: none; }
+    .sidebar-footer { display: none; }
+    .nav {
+      flex: 1; padding: 0;
+      display: flex; flex-direction: row;
+    }
+    .nav-item {
+      flex: 1; flex-direction: column;
+      gap: 3px; padding: 10px 4px;
+      font-size: 10px; border-left: none;
+      border-top: 3px solid transparent;
+      justify-content: center; text-align: center;
+    }
+    .nav-item.active {
+      border-left: none;
+      border-top: 3px solid var(--gold);
+      background: rgba(201,168,76,0.1);
+    }
+    .nav-icon { font-size: 18px; width: auto; }
+    .nav-badge {
+      position: absolute;
+      top: 6px; right: 20%;
+      margin-left: 0;
+    }
+    .nav-item { position: relative; }
+
+    /* Main */
+    .main { margin-left: 0; padding: 20px 16px 90px; }
+
+    /* Stats grid → 2 col */
+    .stats-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card { padding: 18px 16px; }
+    .stat-card-val { font-size: 22px; }
+
+    /* Page header */
+    .page-header { margin-bottom: 20px; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .page-title { font-size: 18px; }
+
+    /* Toolbar */
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .search-input { min-width: 0; width: 100%; }
+
+    /* Shaayari grid → single col */
+    .shaayari-grid { grid-template-columns: 1fr; }
+
+    /* Notifications */
+    .notif-item { padding: 14px 16px; }
+    .notif-icon { font-size: 18px; }
+
+    /* Comments */
+    .comment-card { flex-direction: column; gap: 10px; }
+
+    /* Editor modal → full screen bottom sheet */
+    .modal-overlay {
+      align-items: flex-end;
+      padding: 0;
+    }
+    .modal {
+      width: 100%;
+      max-width: 100%;
+      max-height: 95vh;
+      border-radius: 24px 24px 0 0;
+      padding: 28px 20px 32px;
+    }
+    .modal-footer { flex-direction: column; }
+    .modal-footer .btn { width: 100%; justify-content: center; }
+
+    /* Tag picker wrap */
+    .tag-picker { gap: 6px; }
+    .tag-btn { padding: 5px 12px; font-size: 13px; }
+
+    /* Logout in mobile — hide from sidebar, add to dashboard */
+    .mobile-logout {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      padding: 12px;
+      background: white;
+      border-radius: 12px;
+      color: var(--maroon);
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-decoration: none;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .nav-item { font-size: 9px; }
+  }
+
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <span class="logo-moon">🌙</span>
+      <div class="logo-title">Digital Mushayara</div>
+      <div class="logo-sub">Admin Panel</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showView('dashboard',this)">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showView('notifications',this)">
+        <span class="nav-icon">🔔</span> Notifications
+        <span class="nav-badge" id="notif-badge">0</span>
+      </div>
+      <div class="nav-item" onclick="showView('shaayaris',this)">
+        <span class="nav-icon">📜</span> Shaayaris
+      </div>
+      <div class="nav-item" onclick="showView('comments',this)">
+        <span class="nav-icon">💬</span> Comments
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/admin/logout" class="logout-btn">↩ Logout</a>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Welcome back, Nadeem Memon 🌙</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card-icon">📜</div>
+          <div class="stat-card-val" id="stat-total">—</div>
+          <div class="stat-card-label">Total Shaayaris</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">📝</div>
+          <div class="stat-card-val" id="stat-drafts">—</div>
+          <div class="stat-card-label">Drafts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">👏</div>
+          <div class="stat-card-val" id="stat-reactions">—</div>
+          <div class="stat-card-label">Total Reactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">💬</div>
+          <div class="stat-card-val" id="stat-comments">—</div>
+          <div class="stat-card-label">Total Comments</div>
+        </div>
+      </div>
+      <div class="page-header" style="margin-top:8px;">
+        <div class="page-title" style="font-size:16px;">Recent Notifications</div>
+      </div>
+      <div id="dashboard-notifs"></div>
+    <a href="/admin/logout" class="mobile-logout" style="display:none;" id="mobile-logout-btn">↩ Logout</a>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="view" id="view-notifications">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="page-title">Notifications</div>
+          <div class="page-sub">Reactions and comments on your shaayaris</div>
+        </div>
+        <button class="btn btn-outline" onclick="markAllRead()">✓ Mark all read</button>
+      </div>
+      <div id="notif-list"></div>
+    </div>
+
+    <!-- SHAAYARIS -->
+    <div class="view" id="view-shaayaris">
+      <div class="page-header">
+        <div class="page-title">Shaayaris</div>
+        <div class="page-sub">Manage, edit and publish your shaayaris</div>
+      </div>
+      <div class="toolbar">
+        <input type="text" class="search-input" placeholder="Search shaayaris..." oninput="filterShaayaris(this.value)" />
+        <select class="form-input" style="width:140px;padding:10px 14px;" onchange="filterByStatus(this.value)">
+          <option value="all">All</option>
+          <option value="published">Published</option>
+          <option value="draft">Drafts</option>
+        </select>
+        <button class="btn btn-primary" onclick="openEditor()">+ New Shaayari</button>
+      </div>
+      <div class="shaayari-grid" id="shaayari-grid"></div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="view" id="view-comments">
+      <div class="page-header">
+        <div class="page-title">Comments</div>
+        <div class="page-sub">All comments across your shaayaris</div>
+      </div>
+      <div id="comments-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EDITOR MODAL -->
+<div class="modal-overlay" id="editor-modal" onclick="closeEditorOutside(event)">
+  <div class="modal">
+    <div class="modal-title" id="editor-title">New Shaayari</div>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input type="text" class="form-input" id="ed-title" placeholder="Shaayari ka naam..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Shaayari</label>
+      <textarea class="form-input" id="ed-body" placeholder="Apni shaayari likhiye..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mood Tags</label>
+      <div class="tag-picker">
+        <div class="tag-btn" onclick="toggleTag(this,'Love')">Love</div>
+        <div class="tag-btn" onclick="toggleTag(this,'Sad')">Sad</div>
+        <div class="tag-btn" onclick="toggleTag(this,'Sufi')">Sufi</div>
+        <div class="tag-btn" onclick="toggleTag(this,'Philosophy')">Philosophy</div>
+        <div class="tag-btn" onclick="toggleTag(this,'Nature')">Nature</div>
+        <div class="tag-btn" onclick="toggleTag(this,'Nazm')">Nazm</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-input" id="ed-status">
+        <option value="published">Published — visible to everyone</option>
+        <option value="draft">Draft — only visible to you</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveShaayari()">Save Shaayari</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allShaayaris = [];
+let allNotifs    = [];
+let editingId    = null;
+let statusFilter = 'all';
+
+// ── INIT ──────────────────────────────
+window.onload = function() {
+  // Show mobile logout button on small screens
+  if (window.innerWidth <= 768) {
+    var btn = document.getElementById('mobile-logout-btn');
+    if (btn) btn.style.display = 'block';
+  }
+  loadDashboard();
+  loadNotifications();
+  loadShaayaris();
+  loadComments();
+};
+
+// ── NAVIGATION ────────────────────────
+function showView(name, el) {
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('view-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ── DASHBOARD ─────────────────────────
+async function loadDashboard() {
+  const res  = await fetch('/admin/api/shaayaris');
+  const data = await res.json();
+  const published = data.filter(function(s){ return s.status === 'published'; }).length;
+  const drafts    = data.filter(function(s){ return s.status === 'draft'; }).length;
+  const reactions = data.reduce(function(a,s){ return a + (s.reactions||0); }, 0);
+  const comments  = data.reduce(function(a,s){ return a + (s.comments||0); }, 0);
+
+  document.getElementById('stat-total').textContent     = published;
+  document.getElementById('stat-drafts').textContent    = drafts;
+  document.getElementById('stat-reactions').textContent = reactions;
+  document.getElementById('stat-comments').textContent  = comments;
+
+  // Recent notifications on dashboard
+  const nr = await fetch('/admin/api/notifications');
+  const nd = await nr.json();
+  const container = document.getElementById('dashboard-notifs');
+  const recent = nd.notifications.slice(0, 5);
+  if (recent.length === 0) {
+    container.innerHTML = '<div class="empty-notif">Abhi koi notification nahi 🌙</div>';
+  } else {
+    container.innerHTML = recent.map(notifHTML).join('');
+  }
+}
+
+// ── NOTIFICATIONS ─────────────────────
+async function loadNotifications() {
+  const res  = await fetch('/admin/api/notifications');
+  const data = await res.json();
+  allNotifs  = data.notifications;
+
+  const badge = document.getElementById('notif-badge');
+  if (data.unread > 0) {
+    badge.textContent = data.unread;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+
+  const list = document.getElementById('notif-list');
+  if (allNotifs.length === 0) {
+    list.innerHTML = '<div class="empty-notif">Koi notification nahi abhi tak 🌙<br><small>Jab koi react kare ya comment kare tab yahan aayega</small></div>';
+  } else {
+    list.innerHTML = allNotifs.map(notifHTML).join('');
+  }
+}
+
+function notifHTML(n) {
+  var icon = n.type === 'reaction' ? '👏' : '💬';
+  var unread = !n.is_read ? 'unread' : '';
+  return '<div class="notif-item ' + unread + '">'
+    + '<div class="notif-icon">' + icon + '</div>'
+    + '<div class="notif-body">'
+    + '<div class="notif-title">' + (n.type === 'reaction' ? 'New Reaction' : 'New Comment') + '</div>'
+    + '<div class="notif-shaayari">on "' + n.shaayari_title + '"</div>'
+    + '<div class="notif-content">' + n.content + '</div>'
+    + '<div class="notif-time">' + new Date(n.created_at).toLocaleString('en-IN') + '</div>'
+    + '</div></div>';
+}
+
+async function markAllRead() {
+  await fetch('/admin/api/notifications/read', { method:'POST' });
+  loadNotifications();
+}
+
+// ── SHAAYARIS ─────────────────────────
+async function loadShaayaris() {
+  const res  = await fetch('/admin/api/shaayaris');
+  allShaayaris = await res.json();
+  renderShaayaris(allShaayaris);
+}
+
+function renderShaayaris(data) {
+  var filtered = data.filter(function(s){
+    return statusFilter === 'all' || s.status === statusFilter;
+  });
+  const grid = document.getElementById('shaayari-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:60px;color:var(--text-light);font-style:italic">Koi shaayari nahi mili</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(function(s) {
+    var tags = JSON.parse(s.tags || '[]');
+    var preview = s.body.split('\n').filter(function(l){ return l.trim(); }).slice(0,3).join('\n');
+    return '<div class="shaayari-card">'
+      + '<span class="sc-status ' + s.status + '">' + s.status + '</span>'
+      + '<div class="sc-title">' + escHTML(s.title) + '</div>'
+      + '<div class="sc-preview">' + escHTML(preview) + '</div>'
+      + '<div class="sc-meta">'
+      + '<span>👏 ' + (s.reactions||0) + '</span>'
+      + '<span>💬 ' + (s.comments||0) + '</span>'
+      + (tags.length ? '<span>🏷 ' + tags.join(', ') + '</span>' : '')
+      + '</div>'
+      + '<div class="sc-actions">'
+      + '<button class="btn btn-outline btn-sm" onclick="editShaayari(\'' + s.id + '\')">✏️ Edit</button>'
+      + '<button class="btn btn-danger btn-sm" onclick="deleteShaayari(\'' + s.id + '\',\'' + escHTML(s.title) + '\')">🗑 Delete</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function filterShaayaris(q) {
+  var lower = q.toLowerCase();
+  var filtered = allShaayaris.filter(function(s){
+    return s.title.toLowerCase().includes(lower) || s.body.toLowerCase().includes(lower);
+  });
+  renderShaayaris(filtered);
+}
+
+function filterByStatus(val) {
+  statusFilter = val;
+  renderShaayaris(allShaayaris);
+}
+
+// ── EDITOR ────────────────────────────
+function openEditor(s) {
+  editingId = s ? s.id : null;
+  document.getElementById('editor-title').textContent = s ? 'Edit Shaayari' : 'New Shaayari';
+  document.getElementById('ed-title').value  = s ? s.title : '';
+  document.getElementById('ed-body').value   = s ? s.body  : '';
+  document.getElementById('ed-status').value = s ? s.status : 'published';
+  var tags = s ? JSON.parse(s.tags || '[]') : [];
+  document.querySelectorAll('.tag-btn').forEach(function(btn){
+    btn.classList.toggle('selected', tags.includes(btn.textContent));
+  });
+  document.getElementById('editor-modal').classList.add('open');
+}
+
+async function editShaayari(id) {
+  const res = await fetch('/admin/api/shaayari/' + id);
+  const s   = await res.json();
+  openEditor(s);
+}
+
+function closeEditor() {
+  document.getElementById('editor-modal').classList.remove('open');
+  editingId = null;
+}
+
+function closeEditorOutside(e) {
+  if (e.target === document.getElementById('editor-modal')) closeEditor();
+}
+
+function toggleTag(el, tag) {
+  el.classList.toggle('selected');
+}
+
+async function saveShaayari() {
+  var title  = document.getElementById('ed-title').value.trim();
+  var body   = document.getElementById('ed-body').value.trim();
+  var status = document.getElementById('ed-status').value;
+  var tags   = [];
+  document.querySelectorAll('.tag-btn.selected').forEach(function(b){ tags.push(b.textContent); });
+
+  if (!title || !body) { alert('Title aur shaayari dono zaroori hain!'); return; }
+
+  var url    = editingId ? '/admin/api/shaayari/' + editingId : '/admin/api/shaayari';
+  var method = editingId ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, body, tags, status })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    closeEditor();
+    loadShaayaris();
+    loadDashboard();
+  } else {
+    alert('Error saving: ' + JSON.stringify(data));
+  }
+}
+
+async function deleteShaayari(id, title) {
+  if (!confirm('Delete "' + title + '"? Yeh wapas nahi aayegi!')) return;
+  await fetch('/admin/api/shaayari/' + id, { method:'DELETE' });
+  loadShaayaris();
+  loadDashboard();
+}
+
+// ── COMMENTS ──────────────────────────
+async function loadComments() {
+  const res  = await fetch('/admin/api/comments');
+  const data = await res.json();
+  const list = document.getElementById('comments-list');
+  if (data.length === 0) {
+    list.innerHTML = '<div class="empty-notif">Abhi koi comment nahi 🌙</div>';
+    return;
+  }
+  list.innerHTML = data.map(function(c) {
+    return '<div class="comment-card">'
+      + '<div style="flex:1">'
+      + '<div class="comment-author">' + escHTML(c.name) + '</div>'
+      + '<div class="comment-shaayari">on "' + escHTML(c.shaayari_title) + '"</div>'
+      + '<div class="comment-text">' + escHTML(c.text) + '</div>'
+      + '<div class="comment-time">' + c.created_at + '</div>'
+      + '</div>'
+      + '<button class="btn btn-danger btn-sm" onclick="deleteComment(' + c.id + ')">🗑</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function deleteComment(id) {
+  if (!confirm('Delete this comment?')) return;
+  await fetch('/admin/api/comment/' + id, { method:'DELETE' });
+  loadComments();
+}
+
+// ── UTILS ─────────────────────────────
+function escHTML(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeEditor();
+});
+</script>
+</body>
+</html>
