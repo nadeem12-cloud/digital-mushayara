@@ -56,17 +56,18 @@ Write a shaayari on your phone → it's live on the internet in under 5 minutes.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Backend | Python, Flask, flask-cors |
-| Database | SQLite |
-| Frontend | Vanilla HTML, CSS, JavaScript |
-| Auth | Session-based with SHA-256 password hashing |
-| Backup | Google Drive API, OAuth2 |
-| Automation | Windows Task Scheduler |
-| Export | html2canvas |
-| Fonts | Cormorant Garamond, Cinzel, EB Garamond |
-| Hosting | PythonAnywhere (free tier) |
+| Layer | Technology | Details |
+|---|---|---|
+| Backend | Python 3.10 + Flask | REST API, session auth, admin routes |
+| Database | SQLite | Shaayaris, reactions, comments, notifications |
+| Frontend | Vanilla HTML + CSS + JavaScript | Zero frameworks, pure web |
+| Authentication | Session-based | SHA-256 password hashing, login_required decorator |
+| Backup | Google Drive API v3 | OAuth2, automated .txt file download |
+| Automation | Windows Task Scheduler | Weekly backup every Sunday 10am |
+| Image Export | html2canvas | 1080×1080 quote cards, 4 gradient styles |
+| Typography | Cormorant Garamond, Cinzel, EB Garamond | Google Fonts |
+| Hosting | PythonAnywhere | Free tier, WSGI deployment |
+| Version Control | Git + GitHub | github.com/nadeem12-cloud/digital-mushayara |
 
 ---
 
