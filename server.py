@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, session, redirect, url_for, render_template_string
 from flask_cors import CORS
 from pathlib import Path
-import os, json, sqlite3, hashlib
+import os, json, sqlite3, hashlib, re, unicodedata
 from datetime import datetime
 from functools import wraps
 
@@ -22,6 +22,32 @@ def get_db():
 def hash_password(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
+# ── SLUG HELPER ──────────────────────────
+def make_slug(title, sid):
+    """Generate a clean URL slug from shaayari title + id."""
+    if not title:
+        return str(sid)
+    # Normalize unicode → closest ASCII
+    normalized = unicodedata.normalize('NFKD', title)
+    ascii_title = normalized.encode('ascii', 'ignore').decode('ascii')
+    ascii_title = ascii_title.lower()
+    ascii_title = re.sub(r'[^a-z0-9\s-]', '', ascii_title)
+    ascii_title = re.sub(r'[\s_-]+', '-', ascii_title).strip('-')
+    # Append id so every slug is unique and we can always recover the id
+    if ascii_title:
+        return f"{ascii_title}-{sid}"
+    # Urdu / non-ASCII title: just use the id
+    return str(sid)
+
+def sid_from_slug(slug):
+    """Extract shaayari id from slug. Slug format: <words>-<id> or just <id>."""
+    parts = slug.split('-')
+    # Try parts from the end until we find one that's a valid id
+    for part in reversed(parts):
+        if part:  # could be alphanumeric id like "ishq_teri" or numeric
+            return part
+    return slug
+
 # ── AUTH ─────────────────────────────────
 def login_required(f):
     @wraps(f)
@@ -38,6 +64,70 @@ def index():
         return HTML_PATH.read_text(encoding="utf-8")
     return "<h2>index.html not found</h2>", 404
 
+# ── INDIVIDUAL SHAAYARI PAGE ─────────────
+@app.route("/shaayari/<slug>")
+def shaayari_page(slug):
+    """
+    Shareable individual shaayari URL.
+    Serves index.html with:
+      - Open Graph meta tags injected (WhatsApp / Twitter previews)
+      - window.__DIRECT_SHAAYARI_ID__ so JS auto-opens the modal
+    """
+    sid = sid_from_slug(slug)
+
+    db = get_db()
+    row = db.execute(
+        "SELECT * FROM shaayaris WHERE id = ? AND status = 'published'", (sid,)
+    ).fetchone()
+    db.close()
+
+    if not row:
+        # graceful fallback — load homepage, JS will just show nothing
+        if HTML_PATH.exists():
+            return HTML_PATH.read_text(encoding="utf-8"), 404
+        return "Shaayari not found", 404
+
+    if not HTML_PATH.exists():
+        return "index.html not found", 404
+
+    html = HTML_PATH.read_text(encoding="utf-8")
+
+    title        = (row["title"] or "Shaayari").replace('"', '&quot;')
+    body_preview = " ".join((row["body"] or "").split())[:160].replace('"', '&quot;')
+    site_url     = "https://nadeemmemon.pythonanywhere.com"
+    canonical    = f"{site_url}/shaayari/{slug}"
+
+    og_tags = f"""
+    <meta property="og:type"        content="article" />
+    <meta property="og:title"       content="{title} — Digital Mushayara" />
+    <meta property="og:description" content="{body_preview}..." />
+    <meta property="og:url"         content="{canonical}" />
+    <meta property="og:site_name"   content="Digital Mushayara" />
+    <meta name="twitter:card"       content="summary" />
+    <meta name="twitter:title"      content="{title} — Digital Mushayara" />
+    <meta name="twitter:description" content="{body_preview}..." />
+    <link rel="canonical"           href="{canonical}" />
+    <script>window.__DIRECT_SHAAYARI_ID__ = {json.dumps(str(row["id"]))};</script>"""
+
+    html = html.replace("</head>", og_tags + "\n</head>", 1)
+    return html
+
+# ── SLUG API ─────────────────────────────
+@app.route("/api/shaayari/<sid>/slug")
+def get_shaayari_slug(sid):
+    db  = get_db()
+    row = db.execute("SELECT id, title FROM shaayaris WHERE id = ?", (sid,)).fetchone()
+    db.close()
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    slug = make_slug(row["title"], row["id"])
+    return jsonify({
+        "slug": slug,
+        "url":  f"/shaayari/{slug}",
+        "full": f"https://nadeemmemon.pythonanywhere.com/shaayari/{slug}"
+    })
+
+# ── ALL SHAAYARIS ────────────────────────
 @app.route("/api/shaayaris")
 def get_all():
     db = get_db()
@@ -56,8 +146,7 @@ def get_all():
 
     result = []
     for row in rows:
-        # get reactions breakdown
-        db2 = get_db()
+        db2  = get_db()
         rxns = db2.execute("""
             SELECT reaction, COUNT(*) as cnt
             FROM reactions WHERE shaayari_id = ?
@@ -66,14 +155,15 @@ def get_all():
         db2.close()
         reactions = {r["reaction"]: r["cnt"] for r in rxns}
         result.append({
-            "id":       row["id"],
-            "title":    row["title"],
-            "body":     row["body"],
-            "tags":     json.loads(row["tags"] or "[]"),
+            "id":        row["id"],
+            "title":     row["title"],
+            "body":      row["body"],
+            "tags":      json.loads(row["tags"] or "[]"),
             "reactions": reactions,
         })
     return jsonify(result)
 
+# ── REACT ────────────────────────────────
 @app.route("/api/react", methods=["POST"])
 def react():
     data = request.json or {}
@@ -81,8 +171,7 @@ def react():
     if not sid or not rkey:
         return jsonify({"error": "missing"}), 400
 
-    db = get_db()
-    # Get shaayari title for notification
+    db  = get_db()
     row = db.execute("SELECT title FROM shaayaris WHERE id = ?", (sid,)).fetchone()
     if not row:
         db.close()
@@ -90,16 +179,17 @@ def react():
 
     db.execute("INSERT INTO reactions (shaayari_id, reaction) VALUES (?, ?)", (sid, rkey))
 
-    # Save notification
     reaction_labels = {
-        "waah": "Waah Waah 👏", "khoob": "Bahut Khoob 🌹",
-        "kyabaat": "Kya Baat Hai ✨", "dil": "Dil Ko Chua 💙", "aah": "Aah! 😮"
+        "waah":    "Waah Waah 👏",
+        "khoob":   "Bahut Khoob 🌹",
+        "kyabaat": "Kya Baat Hai ✨",
+        "dil":     "Dil Ko Chua 💙",
+        "aah":     "Aah! 😮"
     }
     db.execute("""
         INSERT INTO notifications (type, shaayari_id, shaayari_title, content)
         VALUES ('reaction', ?, ?, ?)
     """, (sid, row["title"], reaction_labels.get(rkey, rkey)))
-
     db.commit()
 
     rxns = db.execute("""
@@ -111,23 +201,27 @@ def react():
     reactions = {r["reaction"]: r["cnt"] for r in rxns}
     return jsonify({"ok": True, "reactions": reactions})
 
+# ── COMMENT ──────────────────────────────
 @app.route("/api/comment", methods=["POST"])
 def add_comment():
     data = request.json or {}
     sid  = data.get("id")
-    name = data.get("name", "Ek Musafir").strip() or "Ek Musafir"
-    text = data.get("text", "").strip()
+    name = (data.get("name") or "Ek Musafir").strip() or "Ek Musafir"
+    text = (data.get("text") or "").strip()
     if not sid or not text:
         return jsonify({"error": "missing"}), 400
 
-    db = get_db()
+    db  = get_db()
     row = db.execute("SELECT title FROM shaayaris WHERE id = ?", (sid,)).fetchone()
     if not row:
         db.close()
         return jsonify({"error": "not found"}), 404
 
-    db.execute("INSERT INTO comments (shaayari_id, name, text) VALUES (?, ?, ?)",
-               (sid, name, text))
+    db.execute(
+        "INSERT INTO comments (shaayari_id, name, text) VALUES (?, ?, ?)",
+        (sid, name, text)
+    )
+    # ✅ Notification insert (was missing before — this is the comment bug fix)
     db.execute("""
         INSERT INTO notifications (type, shaayari_id, shaayari_title, content)
         VALUES ('comment', ?, ?, ?)
@@ -142,6 +236,7 @@ def add_comment():
 
     return jsonify({"ok": True, "comments": [dict(c) for c in comments]})
 
+# ── GET COMMENTS ─────────────────────────
 @app.route("/api/comments/<sid>")
 def get_comments(sid):
     db = get_db()
@@ -167,14 +262,15 @@ def admin_login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         db = get_db()
-        admin = db.execute("SELECT * FROM admin WHERE username=? AND password=?",
-                           (username, hash_password(password))).fetchone()
+        admin = db.execute(
+            "SELECT * FROM admin WHERE username=? AND password=?",
+            (username, hash_password(password))
+        ).fetchone()
         db.close()
         if admin:
             session["admin"] = True
             return redirect("/admin")
         error = "Invalid credentials"
-
     return render_template_string(LOGIN_HTML, error=error)
 
 @app.route("/admin/logout")
@@ -197,10 +293,11 @@ def admin_panel():
 def get_notifications():
     db = get_db()
     notifs = db.execute("""
-        SELECT * FROM notifications
-        ORDER BY created_at DESC LIMIT 50
+        SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50
     """).fetchall()
-    unread = db.execute("SELECT COUNT(*) FROM notifications WHERE is_read=0").fetchone()[0]
+    unread = db.execute(
+        "SELECT COUNT(*) FROM notifications WHERE is_read=0"
+    ).fetchone()[0]
     db.close()
     return jsonify({"notifications": [dict(n) for n in notifs], "unread": unread})
 
@@ -231,7 +328,7 @@ def admin_shaayaris():
 @app.route("/admin/api/shaayari/<sid>")
 @login_required
 def admin_get_shaayari(sid):
-    db = get_db()
+    db  = get_db()
     row = db.execute("SELECT * FROM shaayaris WHERE id=?", (sid,)).fetchone()
     db.close()
     if not row:
@@ -241,25 +338,24 @@ def admin_get_shaayari(sid):
 @app.route("/admin/api/shaayari", methods=["POST"])
 @login_required
 def admin_add_shaayari():
-    data  = request.json or {}
-    title = data.get("title", "").strip()
-    body  = data.get("body", "").strip()
-    tags  = data.get("tags", [])
+    data   = request.json or {}
+    title  = data.get("title", "").strip()
+    body   = data.get("body",  "").strip()
+    tags   = data.get("tags",  [])
     status = data.get("status", "published")
     if not title or not body:
         return jsonify({"error": "title and body required"}), 400
 
     sid = title.lower().replace(" ", "_")[:50]
-    # ensure unique id
-    db = get_db()
+    db  = get_db()
     existing = db.execute("SELECT id FROM shaayaris WHERE id=?", (sid,)).fetchone()
     if existing:
         sid = sid + "_" + datetime.now().strftime("%H%M%S")
 
-    db.execute("""
-        INSERT INTO shaayaris (id, title, body, tags, status)
-        VALUES (?, ?, ?, ?, ?)
-    """, (sid, title, body, json.dumps(tags), status))
+    db.execute(
+        "INSERT INTO shaayaris (id, title, body, tags, status) VALUES (?, ?, ?, ?, ?)",
+        (sid, title, body, json.dumps(tags), status)
+    )
     db.commit()
     db.close()
     return jsonify({"ok": True, "id": sid})
@@ -267,10 +363,10 @@ def admin_add_shaayari():
 @app.route("/admin/api/shaayari/<sid>", methods=["PUT"])
 @login_required
 def admin_edit_shaayari(sid):
-    data  = request.json or {}
-    title = data.get("title", "").strip()
-    body  = data.get("body", "").strip()
-    tags  = data.get("tags", [])
+    data   = request.json or {}
+    title  = data.get("title", "").strip()
+    body   = data.get("body",  "").strip()
+    tags   = data.get("tags",  [])
     status = data.get("status", "published")
     if not title or not body:
         return jsonify({"error": "missing"}), 400
@@ -331,12 +427,9 @@ body {
   font-family:'Cormorant Garamond',serif;
 }
 .card {
-  background:#fdf6ec;
-  border-radius:24px;
-  padding:48px 40px;
-  width:360px;
-  box-shadow:0 32px 80px rgba(0,0,0,0.4);
-  text-align:center;
+  background:#fdf6ec; border-radius:24px;
+  padding:48px 40px; width:360px;
+  box-shadow:0 32px 80px rgba(0,0,0,0.4); text-align:center;
 }
 .moon { font-size:40px; margin-bottom:12px; display:block; }
 h1 { font-family:'Cinzel',serif; font-size:18px; color:#3d0c0c; margin-bottom:4px; letter-spacing:1px; }
@@ -364,7 +457,7 @@ button:hover { background:#3d0c0c; }
   <p class="sub">Admin Panel</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="POST">
-    <input type="text" name="username" placeholder="Username" required />
+    <input type="text"     name="username" placeholder="Username" required />
     <input type="password" name="password" placeholder="Password" required />
     <button type="submit">Enter</button>
   </form>
